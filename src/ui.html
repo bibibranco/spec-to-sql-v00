@@ -1,101 +1,23 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root { color-scheme: light dark; }
-    body { font: 13px/1.4 -apple-system, system-ui, Segoe UI, Roboto, sans-serif; margin: 0; }
-    .wrap { padding: 16px; display: grid; gap: 12px; }
-    .hidden { display: none !important; }
-    label { display: grid; gap: 6px; }
-    input {
-      padding: 8px; border: 1px solid var(--figma-color-border, #ccc);
-      border-radius: 8px; width: 100%;
-    }
-    button {
-      padding: 8px 12px; border: 0; border-radius: 10px; cursor: pointer;
-    }
-    .primary { background: var(--figma-color-bg-brand, #18a0fb); color: white; }
-    .muted { background: transparent; border: 1px solid var(--figma-color-border, #ccc); }
-    .row { display: flex; gap: 8px; align-items: center; }
-    .hint { color: #7a7a7a; font-size: 12px; }
-    .error { color: #d11; font-weight: 600; }
-    .ok { color: #0a0; font-weight: 600; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div id="status" class="hint">Verificando autenticação…</div>
-
-    <form id="form" class="hidden">
-      <label>
-        <span>Client ID</span>
-        <input id="client_id" autocomplete="off" />
-      </label>
-      <label>
-        <span>Client Secret</span>
-        <input id="client_secret" type="password" autocomplete="off" />
-      </label>
-      <div class="row">
-        <button type="submit" class="primary">Autenticar</button>
-        <button type="button" id="reset" class="muted">Limpar credenciais</button>
-      </div>
-      <div id="err" class="error"></div>
+  <body style="font-family: sans-serif; padding: 16px">
+    <form id="form">
+      <input id="id" placeholder="Client ID" style="width: 100%; margin-bottom: 8px" />
+      <input id="secret" placeholder="Client Secret" type="password" style="width: 100%; margin-bottom: 8px" />
+      <button type="submit">Send</button>
     </form>
 
-    <div id="ok" class="ok hidden">Autenticado! Você já pode fechar esta janela.</div>
-  </div>
-
-  <script>
-    const form = document.getElementById('form');
-    const err = document.getElementById('err');
-    const ok = document.getElementById('ok');
-    const statusEl = document.getElementById('status');
-
-    function showForm() {
-      statusEl.textContent = "Insira suas credenciais do StackSpot:";
-      form.classList.remove('hidden');
-      ok.classList.add('hidden');
-    }
-    function showOK() {
-      statusEl.textContent = "Tudo certo!";
-      form.classList.add('hidden');
-      ok.classList.remove('hidden');
-    }
-
-    // Mensagens vindas do main
-    window.onmessage = (event) => {
-      const msg = event.data.pluginMessage;
-      if (!msg) return;
-
-      if (msg.type === 'auth-needed') {
-        err.textContent = '';
-        showForm();
-      } else if (msg.type === 'auth-success') {
-        err.textContent = '';
-        showOK();
-      } else if (msg.type === 'auth-error') {
-        showForm();
-        err.textContent = msg.message || 'Falha na autenticação.';
-      }
-    };
-
-    // Envia credenciais para o main
-    form?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      err.textContent = '';
-      const client_id = (document.getElementById('client_id').value || '').trim();
-      const client_secret = (document.getElementById('client_secret').value || '').trim();
-      parent.postMessage({ pluginMessage: { type: 'submit-credentials', client_id, client_secret } }, '*');
-      statusEl.textContent = "Autenticando…";
-    });
-
-    document.getElementById('reset')?.addEventListener('click', () => {
-      parent.postMessage({ pluginMessage: { type: 'reset-credentials' } }, '*');
-      err.textContent = '';
-      statusEl.textContent = "Credenciais limpas. Insira novamente:";
-    });
-  </script>
-</body>
+    <script>
+      document.getElementById("form").onsubmit = (e) => {
+        e.preventDefault();
+        parent.postMessage({
+          pluginMessage: {
+            type: "send-credentials",
+            client_id: document.getElementById("id").value,
+            client_secret: document.getElementById("secret").value,
+          },
+        }, "*");
+      };
+    </script>
+  </body>
 </html>
