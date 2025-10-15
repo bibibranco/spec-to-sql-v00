@@ -7,6 +7,9 @@
       <button type="submit">Send</button>
     </form>
 
+    <button id="run">Run Quick Command</button>
+<pre id="out"></pre>
+
     <script>
       document.getElementById("form").onsubmit = (e) => {
         e.preventDefault();
@@ -18,6 +21,25 @@
           },
         }, "*");
       };
+
+      document.getElementById('run').onclick = () => {
+    parent.postMessage({
+      pluginMessage: {
+        type: "run-quick-command",
+        commandId: "spec-to-sql", // exemplo
+        payload: { exampleKey: "value" }
+      }
+    }, "*");
+  };
+
+  window.onmessage = (ev) => {
+    const m = ev.data.pluginMessage;
+    if (!m) return;
+    if (m.type === "quick-command-response") {
+      document.getElementById('out').textContent =
+        JSON.stringify(m, null, 2);
+    }
+  };
     </script>
   </body>
 </html>
