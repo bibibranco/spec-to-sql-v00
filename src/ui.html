@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>StackSpot Authentication</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--figma-color-bg);
+      color: var(--figma-color-text);
+      padding: 16px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 360px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--figma-color-text);
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--figma-color-text-secondary);
+      line-height: 1.4;
+    }
+
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--figma-color-text);
+    }
+
+    .input {
+      padding: 8px 12px;
+      border: 1px solid var(--figma-color-border);
+      border-radius: 6px;
+      background: var(--figma-color-bg);
+      color: var(--figma-color-text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s ease;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--figma-color-border-selected);
+    }
+
+    .input::placeholder {
+      color: var(--figma-color-text-disabled);
+    }
+
+    .button {
+      padding: 10px 16px;
+      background: var(--figma-color-bg-brand);
+      color: var(--figma-color-text-onbrand);
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      margin-top: 8px;
+    }
+
+    .button:hover {
+      background: var(--figma-color-bg-brand-hover);
+    }
+
+    .button:active {
+      background: var(--figma-color-bg-brand-pressed);
+    }
+
+    .button:disabled {
+      background: var(--figma-color-bg-disabled);
+      color: var(--figma-color-text-disabled);
+      cursor: not-allowed;
+    }
+
+    .error {
+      background: var(--figma-color-bg-danger);
+      color: var(--figma-color-text-danger);
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .success {
+      background: var(--figma-color-bg-success);
+      color: var(--figma-color-text-success);
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      color: var(--figma-color-text-secondary);
+      font-size: 14px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--figma-color-border);
+      border-radius: 50%;
+      border-top-color: var(--figma-color-bg-brand);
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--figma-color-text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">StackSpot Authentication</div>
+      <div class="subtitle">Enter your StackSpot API credentials to continue</div>
+    </div>
+
+    <div class="error" id="errorMessage"></div>
+    <div class="success" id="successMessage"></div>
+
+    <form class="form" id="authForm">
+      <div class="field">
+        <label class="label" for="clientId">Client ID</label>
+        <input
+          type="text"
+          id="clientId"
+          class="input"
+          placeholder="Enter your StackSpot Client ID"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label class="label" for="clientSecret">Client Secret</label>
+        <input
+          type="password"
+          id="clientSecret"
+          class="input"
+          placeholder="Enter your StackSpot Client Secret"
+          required
+        />
+      </div>
+
+      <button type="submit" class="button" id="submitButton">
+        Authenticate
+      </button>
+    </form>
+
+    <div class="loading" id="loadingMessage">
+      <div class="spinner"></div>
+      Authenticating...
+    </div>
+
+    <div class="footer">
+      Your credentials are stored securely in Figma's client storage
+    </div>
+  </div>
+
+  <script>
+    // UI State Management
+    class AuthUI {
+      constructor() {
+        this.form = document.getElementById('authForm');
+        this.clientIdInput = document.getElementById('clientId');
+        this.clientSecretInput = document.getElementById('clientSecret');
+        this.submitButton = document.getElementById('submitButton');
+        this.errorMessage = document.getElementById('errorMessage');
+        this.successMessage = document.getElementById('successMessage');
+        this.loadingMessage = document.getElementById('loadingMessage');
+        
+        this.setupEventListeners();
+        this.setupMessageListener();
+      }
+
+      setupEventListeners() {
+        this.form.addEventListener('submit', this.handleSubmit.bind(this));
+      }
+
+      setupMessageListener() {
+        window.addEventListener('message', (event) => {
+          const message = event.data.pluginMessage;
+          if (message) {
+            this.handleMessage(message);
+          }
+        });
+      }
+
+      handleSubmit(event) {
+        event.preventDefault();
+        this.authenticate();
+      }
+
+      async authenticate() {
+        const clientId = this.clientIdInput.value.trim();
+        const clientSecret = this.clientSecretInput.value.trim();
+
+        if (!clientId || !clientSecret) {
+          this.showError('Please enter both Client ID and Client Secret');
+          return;
+        }
+
+        this.setLoading(true);
+        this.hideMessages();
+
+        // Send credentials to main plugin code
+        parent.postMessage({
+          pluginMessage: {
+            type: 'AUTHENTICATE',
+            data: {
+              client_id: clientId,
+              client_secret: clientSecret
+            }
+          }
+        }, '*');
+      }
+
+      handleMessage(message) {
+        switch (message.type) {
+          case 'AUTH_SUCCESS':
+            this.showSuccess(message.data.message);
+            this.setLoading(false);
+            break;
+          case 'AUTH_ERROR':
+            this.showError(message.data.error);
+            this.setLoading(false);
+            break;
+          default:
+            console.warn('Unknown message type:', message.type);
+        }
+      }
+
+      setLoading(loading) {
+        this.submitButton.disabled = loading;
+        this.loadingMessage.style.display = loading ? 'block' : 'none';
+        this.form.style.display = loading ? 'none' : 'flex';
+      }
+
+      showError(message) {
+        this.errorMessage.textContent = message;
+        this.errorMessage.style.display = 'block';
+        this.successMessage.style.display = 'none';
+      }
+
+      showSuccess(message) {
+        this.successMessage.textContent = message;
+        this.successMessage.style.display = 'block';
+        this.errorMessage.style.display = 'none';
+      }
+
+      hideMessages() {
+        this.errorMessage.style.display = 'none';
+        this.successMessage.style.display = 'none';
+      }
+    }
+
+    // Initialize the UI
+    new AuthUI();
+  </script>
+</body>
+</html>
