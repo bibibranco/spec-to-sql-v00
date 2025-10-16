@@ -48,61 +48,31 @@
 
 <!-- novo -->
 
-<body style="font-family: sans-serif; padding: 16px">
-  <form id="form">
-    <input id="secret" placeholder="client_secret" />
-    <!-- o botão abaixo NÃO é submit -->
-    <button id="run" type="button">Run Quick Command</button>
-  </form>
+<form id="form" onsubmit="return false;">
+  <input id="cid" placeholder="client_id">
+  <input id="sec" placeholder="client_secret" type="password">
+  <button id="auth" type="button">Salvar credenciais</button>
+  <button id="run"  type="button">Run Quick Command</button>
+</form>
 
-  <pre id="out"></pre>
-
-  <script>
-    // 🔒 se alguém chamar fetch na UI, a gente loga
-    (function guardFetch() {
-      const _orig = window.fetch;
-      window.fetch = function (...args) {
-        console.warn("[UI] fetch chamado:", args[0]);
-        return _orig.apply(this, args);
-      };
-    })();
-
-    // impede submissão automática do form
-    document.getElementById("form").onsubmit = (e) => {
-      e.preventDefault();
-      // se quiser enviar o secret pro main:
-      parent.postMessage(
-        {
-          pluginMessage: {
-            type: "send-credentials",
-            client_secret: document.getElementById("secret").value,
-          },
-        },
-        "*"
-      );
-    };
-
-    // botão que dispara o run (só mensagem, nada de fetch)
-    document.getElementById("run").onclick = () => {
-      parent.postMessage(
-        {
-          pluginMessage: {
-            type: "run-quick-command",
-            slug: "figma-to-query",
-            payload: { exampleKey: "value" }, // ou inputs extras
-          },
-        },
-        "*"
-      );
-    };
-
-    // recebe respostas do main e mostra
-    window.onmessage = (ev) => {
-      const m = ev.data?.pluginMessage;
-      if (!m) return;
-      if (m.type === "quick-command-response") {
-        document.getElementById("out").textContent = JSON.stringify(m, null, 2);
+<script>
+  document.getElementById("auth").onclick = () => {
+    parent.postMessage({
+      pluginMessage: {
+        type: "send-credentials",
+        client_id: document.getElementById("cid").value,
+        client_secret: document.getElementById("sec").value
       }
-    };
-  </script>
-</body>
+    }, "*");
+  };
+
+  document.getElementById("run").onclick = () => {
+    parent.postMessage({ pluginMessage: { type: "run-quick-command" } }, "*");
+  };
+
+  window.onmessage = (ev) => {
+    const m = ev.data?.pluginMessage;
+    if (!m) return;
+    // renderiza respostas do main...
+  };
+</script>
